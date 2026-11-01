@@ -188,4 +188,78 @@ class GeneratorTest {
         assertTrue(exception.getMessage().contains(EmptyEnum.class.getName()), "Exception message should contain the enum class name");
     }
 
+
+    @Test
+    void shouldGenerateIntArray() throws Exception {
+        Generator generator = new Generator(new Random(42));
+
+        int[] result = generator.generateValueOfType(int[].class);
+
+        assertNotNull(result);
+        assertTrue(result.length >= 1 && result.length <= 5);
+
+        for (int value : result) {
+            assertTrue(value >= -100 && value <= 100);
+        }
+    }
+
+    @Test
+    void shouldGenerateStringArray() throws Exception {
+        Generator generator = new Generator(new Random(42));
+
+        String[] result = generator.generateValueOfType(String[].class);
+
+        assertNotNull(result);
+        assertTrue(result.length >= 1 && result.length <= 5);
+
+        for (String value : result) {
+            assertNotNull(value);
+            assertTrue(value.matches("[a-z]+"));
+            assertTrue(!value.isEmpty() && value.length() <= 15);
+        }
+    }
+
+    @Test
+    void shouldGenerateBooleanArray() throws Exception {
+        Generator generator = new Generator(new Random(42));
+
+        Boolean[] result = generator.generateValueOfType(Boolean[].class);
+
+        assertNotNull(result);
+        assertTrue(result.length >= 1 && result.length <= 5);
+
+        for (Boolean value : result) {
+            assertNotNull(value);
+        }
+    }
+
+    @Test
+    void shouldGenerateCharArray() throws Exception {
+        Generator generator = new Generator(new Random(42));
+
+        char[] result = generator.generateValueOfType(char[].class);
+
+        assertNotNull(result);
+        assertTrue(result.length >= 1 && result.length <= 5);
+
+        for (char value : result) {
+            assertTrue(value >= 'a' && value <= 'z');
+        }
+    }
+
+    @Test
+    void shouldGenerateEnumArray() throws Exception {
+        Generator generator = new Generator(new Random(42));
+
+        Color[] result = generator.generateValueOfType(Color[].class);
+
+        assertNotNull(result);
+        assertTrue(result.length >= 1 && result.length <= 5);
+
+        for (Color value : result) {
+            assertNotNull(value);
+            assertTrue(EnumSet.allOf(Color.class).contains(value));
+        }
+    }
+
 }

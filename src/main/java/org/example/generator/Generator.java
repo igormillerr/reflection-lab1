@@ -1,5 +1,6 @@
 package org.example.generator;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Random;
@@ -62,6 +63,16 @@ public class Generator {
             }
             int value = random.nextInt(0, constants.length);
             return constants[value];
+        } else if (clazz.isArray()) {
+            Class<?> componentType = clazz.getComponentType();
+            int length = random.nextInt(1, 6);
+            Object result = Array.newInstance(componentType, length);
+
+            for (int i = 0; i < length; i++) {
+                Array.set(result, i, this.generateValueOfType(componentType));
+            }
+
+            return clazz.cast(result);
         }
         Constructor<?>[] constructors = clazz.getDeclaredConstructors();
 

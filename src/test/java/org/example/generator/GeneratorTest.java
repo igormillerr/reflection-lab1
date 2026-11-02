@@ -1,6 +1,7 @@
 
 package org.example.generator;
 
+import org.example.classes.BinaryTreeNode;
 import org.example.classes.Cart;
 import org.example.classes.Color;
 import org.example.classes.Example;
@@ -43,6 +44,47 @@ class GeneratorTest {
 
     public static class NoArgsConstructor {
         public NoArgsConstructor() {
+        }
+    }
+
+
+    public static class ProductMapHolder {
+        private final Map<Integer, Product> products;
+
+        public ProductMapHolder(Map<Integer, Product> products) {
+            this.products = products;
+        }
+
+        public Map<Integer, Product> getProducts() {
+            return products;
+        }
+    }
+
+    public static class BooleanMapHolder {
+        private final Map<Boolean, String> values;
+
+        public BooleanMapHolder(Map<Boolean, String> values) {
+            this.values = values;
+        }
+
+        public Map<Boolean, String> getValues() {
+            return values;
+        }
+    }
+
+    public static class RecursiveA {
+        public final RecursiveB next;
+
+        public RecursiveA(RecursiveB next) {
+            this.next = next;
+        }
+    }
+
+    public static class RecursiveB {
+        public final RecursiveA next;
+
+        public RecursiveB(RecursiveA next) {
+            this.next = next;
         }
     }
 
@@ -372,5 +414,84 @@ class GeneratorTest {
         assertTrue(items.stream().allMatch(Product.class::isInstance));
     }
 
+    @Test
+    void shouldGenerateParameterizedMap() throws Exception {
+        Generator generator = new Generator(new Random(42));
+
+        ProductMapHolder holder =
+                generator.generateValueOfType(ProductMapHolder.class);
+
+        Map<?, ?> products = holder.getProducts();
+
+        assertNotNull(products);
+        assertFalse(products.isEmpty());
+        assertTrue(products.size() <= 5);
+
+        for (Map.Entry<?, ?> entry : products.entrySet()) {
+            assertInstanceOf(Integer.class, entry.getKey());
+            assertInstanceOf(Product.class, entry.getValue());
+        }
+    }
+
+    @Test
+    void shouldGenerateMapWithLimitedUniqueKeys() throws Exception {
+        Generator generator = new Generator(new Random(42));
+
+        BooleanMapHolder holder =
+                generator.generateValueOfType(BooleanMapHolder.class);
+
+        Map<?, ?> values = holder.getValues();
+
+        assertNotNull(values);
+        assertFalse(values.isEmpty());
+        assertTrue(values.size() <= 2);
+
+        for (Map.Entry<?, ?> entry : values.entrySet()) {
+            assertInstanceOf(Boolean.class, entry.getKey());
+            assertInstanceOf(String.class, entry.getValue());
+        }
+    }
+
+
+
+    @Test
+    void shouldGenerateBinaryTreeNode() throws Exception {
+        Generator generator = new Generator(new Random(42));
+
+        BinaryTreeNode root = generator.generateValueOfType(BinaryTreeNode.class);
+
+        assertTreeStructure(root, 3);
+    }
+
+    private static void assertTreeStructure(BinaryTreeNode node, int remainingLevels) {
+        assertNotNull(node);
+
+        if (remainingLevels == 1) {
+            assertNull(node.getLeft());
+            assertNull(node.getRight());
+            return;
+        }
+
+        assertTreeStructure(node.getLeft(), remainingLevels - 1);
+        assertTreeStructure(node.getRight(), remainingLevels - 1);
+    }
+
+
+    @Test
+    void shouldHandleMutualRecursion() throws Exception {
+        Generator generator = new Generator(new Random(42));
+
+        RecursiveA root =
+                generator.generateValueOfType(RecursiveA.class);
+
+        assertNotNull(root);
+        assertNotNull(root.next);
+        assertNotNull(root.next.next);
+        assertNotNull(root.next.next.next);
+        assertNotNull(root.next.next.next.next);
+        assertNotNull(root.next.next.next.next.next);
+
+        assertNull(root.next.next.next.next.next.next);
+    }
 
 }

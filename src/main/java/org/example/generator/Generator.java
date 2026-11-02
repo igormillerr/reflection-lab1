@@ -5,7 +5,10 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,6 +16,8 @@ import java.util.Random;
 
 @SuppressWarnings("unchecked")
 public class Generator {
+
+    private static final int MAX_CLASS_REPETITIONS = 3;
 
     private final Random random;
 
@@ -24,7 +29,50 @@ public class Generator {
         this(new Random());
     }
 
-    public <T> T generateValueOfType(Class<T> clazz) throws InvocationTargetException, InstantiationException, IllegalAccessException {
+    public <T> T generateValueOfType(Class<T> clazz)
+            throws InvocationTargetException, InstantiationException, IllegalAccessException {
+        return generateValueOfType(clazz, new ArrayDeque<>());
+    }
+
+    private Object generateValueOfType(Type type, Deque<Class<?>> path)
+            throws InvocationTargetException, InstantiationException, IllegalAccessException {
+        if (type instanceof Class<?> clazz) {
+            return generateValueOfType(clazz, path);
+        } else if (type instanceof ParameterizedType parameterizedType) {
+            Type rawType = parameterizedType.getRawType();
+            if (rawType == List.class) {
+                Type[] arguments = parameterizedType.getActualTypeArguments();
+                Type elementType = arguments[0];
+
+                List<Object> result = new ArrayList<>();
+                int length = random.nextInt(1, 6);
+                for (int i = 0; i < length; i++) {
+                    result.add(this.generateValueOfType(elementType, path));
+                }
+
+                return result;
+            } else if (rawType == Map.class) {
+                Type[] arguments = parameterizedType.getActualTypeArguments();
+                Type keyType = arguments[0];
+                Type valueType = arguments[1];
+
+                Map<Object, Object> result = new HashMap<>();
+                int length = random.nextInt(1, 6);
+
+                for (int i = 0; i < length; i++) {
+                    Object key = generateValueOfType(keyType, path);
+                    Object value = generateValueOfType(valueType, path);
+                    result.put(key, value);
+                }
+
+                return result;
+            }
+        }
+        throw new IllegalArgumentException("Unsupported type: " + type.getTypeName());
+    }
+
+    private <T> T generateValueOfType(Class<T> clazz, Deque<Class<?>> path)
+            throws InvocationTargetException, InstantiationException, IllegalAccessException {
         if (clazz == int.class || clazz == Integer.class) {
             Integer value = random.nextInt(-100, 101);
             return (T) value;
@@ -75,7 +123,7 @@ public class Generator {
             Object result = Array.newInstance(componentType, length);
 
             for (int i = 0; i < length; i++) {
-                Array.set(result, i, this.generateValueOfType(componentType));
+                Array.set(result, i, generateValueOfType(componentType, path));
             }
 
             return clazz.cast(result);
@@ -84,7 +132,7 @@ public class Generator {
             int length = random.nextInt(1, 6);
 
             for (int i = 0; i < length; i++) {
-                String value = this.generateValueOfType(String.class);
+                String value = this.generateValueOfType(String.class, path);
                 result.add(value);
             }
 
@@ -94,51 +142,40 @@ public class Generator {
             int length = random.nextInt(1, 6);
 
             while (result.size() < length) {
-                String key = this.generateValueOfType(String.class);
-                Integer value = this.generateValueOfType(Integer.class);
+                String key = generateValueOfType(String.class, path);
+                Integer value = generateValueOfType(Integer.class, path);
                 result.put(key, value);
             }
 
             return clazz.cast(result);
         }
 
-        Constructor<?>[] constructors = clazz.getConstructors();
-        if (constructors.length == 0) {
-            throw new IllegalArgumentException(
-                    "Cannot generate value: " + clazz.getName() + " has no public constructors"
-            );
-        }
-        int randomConstructorIndex = random.nextInt(constructors.length);
-        Constructor<?> randomConstructor = constructors[randomConstructorIndex];
-
-        Type[] parameterTypes = randomConstructor.getGenericParameterTypes();
-        Object[] arguments = new Object[parameterTypes.length];
-        for (int i = 0; i < parameterTypes.length; i++) {
-            arguments[i] = this.generateValueOfType(parameterTypes[i]);
+        if (Collections.frequency(path, clazz) >= MAX_CLASS_REPETITIONS) {
+            return null;
         }
 
-        return clazz.cast(randomConstructor.newInstance(arguments));
-    }
+        path.addLast(clazz);
+        try {
+            Constructor<?>[] constructors = clazz.getConstructors();
 
-    private Object generateValueOfType(Type type) throws InvocationTargetException, InstantiationException, IllegalAccessException {
-        if (type instanceof Class<?> clazz) {
-            return generateValueOfType(clazz);
-        } else if (type instanceof ParameterizedType parameterizedType) {
-            Type rawType = parameterizedType.getRawType();
-            if (rawType == List.class) {
-                Type[] arguments = parameterizedType.getActualTypeArguments();
-                Type elementType = arguments[0];
-
-                List<Object> result = new ArrayList<>();
-                int length = random.nextInt(1, 6);
-                for (int i = 0; i < length; i++) {
-                    result.add(this.generateValueOfType(elementType));
-                }
-
-                return result;
+            if (constructors.length == 0) {
+                throw new IllegalArgumentException(
+                        "Cannot generate value: " + clazz.getName() + " has no public constructors"
+                );
             }
-        }
-        throw new IllegalArgumentException("Unsupported type: " + type.getTypeName());
-    }
 
+            int randomConstructorIndex = random.nextInt(constructors.length);
+            Constructor<?> randomConstructor = constructors[randomConstructorIndex];
+
+            Type[] parameterTypes = randomConstructor.getGenericParameterTypes();
+            Object[] arguments = new Object[parameterTypes.length];
+
+            for (int i = 0; i < parameterTypes.length; i++) {
+                arguments[i] = generateValueOfType(parameterTypes[i], path);
+            }
+            return clazz.cast(randomConstructor.newInstance(arguments));
+        } finally {
+            path.removeLast();
+        }
+    }
 }

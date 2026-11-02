@@ -74,11 +74,23 @@ public class Generator {
 
             return clazz.cast(result);
         }
-        Constructor<?>[] constructors = clazz.getDeclaredConstructors();
 
+        Constructor<?>[] constructors = clazz.getConstructors();
+        if (constructors.length == 0) {
+            throw new IllegalArgumentException(
+                    "Cannot generate value: " + clazz.getName() + " has no public constructors"
+            );
+        }
         int randomConstructorIndex = random.nextInt(constructors.length);
         Constructor<?> randomConstructor = constructors[randomConstructorIndex];
-        return clazz.cast(randomConstructor.newInstance(0));
+
+        Class<?>[] parameterTypes = randomConstructor.getParameterTypes();
+        Object[] arguments = new Object[parameterTypes.length];
+        for (int i = 0; i < parameterTypes.length; i++) {
+            arguments[i] = this.generateValueOfType(parameterTypes[i]);
+        }
+
+        return clazz.cast(randomConstructor.newInstance(arguments));
     }
 
 

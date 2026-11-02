@@ -2,6 +2,10 @@
 package org.example.generator;
 
 import org.example.classes.Color;
+import org.example.classes.Example;
+import org.example.classes.Product;
+import org.example.classes.Rectangle;
+import org.example.classes.Triangle;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -19,6 +23,24 @@ import static org.junit.jupiter.api.Assertions.*;
 class GeneratorTest {
 
     private enum EmptyEnum {
+    }
+
+    public static class MixedConstructors {
+        private MixedConstructors(String value) {
+        }
+
+        public MixedConstructors(int value) {
+        }
+    }
+
+    public static class PrivateConstructorOnly {
+        private PrivateConstructorOnly() {
+        }
+    }
+
+    public static class NoArgsConstructor {
+        public NoArgsConstructor() {
+        }
     }
 
     @ParameterizedTest(name = "{0} -> {1}")
@@ -261,5 +283,53 @@ class GeneratorTest {
             assertTrue(EnumSet.allOf(Color.class).contains(value));
         }
     }
+
+
+    @ParameterizedTest(name = "Generate {0}")
+    @ValueSource(classes = {
+            Example.class,
+            Rectangle.class,
+            Triangle.class,
+            Product.class
+    })
+    void shouldGenerateUserDefinedClass(Class<?> clazz) throws Exception {
+        Generator generator = new Generator(new Random(42));
+
+        Object result = generator.generateValueOfType(clazz);
+
+        assertNotNull(result);
+        assertInstanceOf(clazz, result);
+    }
+
+
+    @Test
+    void shouldUseOnlyPublicConstructors() throws Exception {
+        Generator generator = new Generator(new Random(42));
+
+        for (int i = 0; i < 30; i++) {
+            MixedConstructors result =
+                    generator.generateValueOfType(MixedConstructors.class);
+
+            assertNotNull(result);
+        }
+    }
+
+    @Test
+    void shouldRejectClassWithoutPublicConstructors() {
+        Generator generator = new Generator(new Random(42));
+
+        IllegalArgumentException exception = assertThrows(
+                IllegalArgumentException.class,
+                () -> generator.generateValueOfType(PrivateConstructorOnly.class)
+        );
+
+        assertTrue(
+                exception.getMessage().contains(
+                        PrivateConstructorOnly.class.getName()
+                )
+        );
+    }
+
+
 
 }

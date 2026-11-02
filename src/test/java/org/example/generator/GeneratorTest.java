@@ -1,6 +1,7 @@
 
 package org.example.generator;
 
+import org.example.classes.Cart;
 import org.example.classes.Color;
 import org.example.classes.Example;
 import org.example.classes.Product;
@@ -14,6 +15,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.stream.Stream;
@@ -330,6 +333,44 @@ class GeneratorTest {
         );
     }
 
+
+    @Test
+    void shouldGenerateList() throws Exception {
+        Generator generator = new Generator(new Random(42));
+
+        List<?> result = generator.generateValueOfType(List.class);
+
+        assertNotNull(result);
+        assertTrue(!result.isEmpty() && result.size() <= 5);
+        assertTrue(result.stream().allMatch(String.class::isInstance));
+    }
+
+    @Test
+    void shouldGenerateMap() throws Exception {
+        Generator generator = new Generator(new Random(42));
+
+        Map<?, ?> result = generator.generateValueOfType(Map.class);
+
+        assertNotNull(result);
+        assertTrue(!result.isEmpty() && result.size() <= 5);
+        assertTrue(result.keySet().stream().allMatch(String.class::isInstance));
+        assertTrue(result.values().stream().allMatch(Integer.class::isInstance));
+    }
+
+    @Test
+    void shouldGenerateCartWithProducts() throws Exception {
+        Generator generator = new Generator(new Random(42));
+
+        Cart cart = generator.generateValueOfType(Cart.class);
+
+        assertNotNull(cart);
+
+        List<Product> items = cart.getItems();
+
+        assertNotNull(items);
+        assertTrue(!items.isEmpty() && items.size() <= 5);
+        assertTrue(items.stream().allMatch(Product.class::isInstance));
+    }
 
 
 }

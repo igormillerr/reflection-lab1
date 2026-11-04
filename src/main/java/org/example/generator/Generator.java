@@ -33,7 +33,7 @@ public class Generator {
     }
 
     public <T> T generateValueOfType(Class<T> clazz)
-            throws InvocationTargetException, InstantiationException, IllegalAccessException {
+            throws InvocationTargetException {
         Objects.requireNonNull(clazz, "clazz must not be null");
         return generateValueOfType(clazz, new ArrayDeque<>());
     }
@@ -76,7 +76,7 @@ public class Generator {
     }
 
     private <T> T generateValueOfType(Class<T> clazz, Deque<Class<?>> path)
-            throws InvocationTargetException, InstantiationException, IllegalAccessException {
+            throws InvocationTargetException {
         if (clazz == int.class || clazz == Integer.class) {
             Integer value = random.nextInt(-100, 101);
             return (T) value;
@@ -222,7 +222,16 @@ public class Generator {
                     failure.addSuppressed(e);
                 }
             }
+            Throwable[] failures = failure.getSuppressed();
+            if (failures.length == 1 && failures[0] instanceof IllegalStateException e) {
+                Throwable cause = e.getCause();
+
+                if (cause != null) {
+                    throw new IllegalStateException(failure.getMessage(), cause);
+                }
+            }
             throw failure;
+
         } finally {
             path.removeLast();
         }

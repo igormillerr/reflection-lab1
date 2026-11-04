@@ -3,10 +3,12 @@ package org.example.generator;
 import java.lang.reflect.Array;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
@@ -148,6 +150,30 @@ public class Generator {
             }
 
             return clazz.cast(result);
+        } else if (clazz.isInterface() || Modifier.isAbstract(clazz.getModifiers())) {
+            Generatable annotation = clazz.getAnnotation(Generatable.class);
+            if (annotation == null) {
+                throw new IllegalArgumentException(
+                        "Missing @Generatable on " + clazz.getName()
+                );
+            }
+            Class<?>[] implementations = annotation.implementations();
+            if (implementations.length == 0) {
+                throw new IllegalArgumentException("No implementations declared for " + clazz.getName());
+            }
+
+            boolean hasInvalidImplementation = Arrays.stream(implementations)
+                    .anyMatch(implementation ->
+                            !clazz.isAssignableFrom(implementation)
+                                    || implementation.isInterface()
+                                    || Modifier.isAbstract(implementation.getModifiers())
+                    );
+            if (hasInvalidImplementation) {
+                throw new IllegalArgumentException("Invalid @Generatable implementations for " + clazz.getName());
+            }
+
+            int randomImplementationIndex = random.nextInt(implementations.length);
+            return clazz.cast(generateValueOfType(implementations[randomImplementationIndex], path));
         }
 
         if (Collections.frequency(path, clazz) >= MAX_CLASS_REPETITIONS) {

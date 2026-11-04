@@ -7,6 +7,7 @@ import org.example.classes.Color;
 import org.example.classes.Example;
 import org.example.classes.Product;
 import org.example.classes.Rectangle;
+import org.example.classes.Shape;
 import org.example.classes.Triangle;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -25,6 +26,8 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.*;
 
 class GeneratorTest {
+
+    private static final Generator generator = new Generator(new Random(42));
 
     private enum EmptyEnum {
     }
@@ -88,13 +91,25 @@ class GeneratorTest {
         }
     }
 
+    @Generatable(implementations = {Dog.class})
+    public static abstract class Animal {
+    }
+
+    public static class Dog extends Animal {
+        public Dog() {
+        }
+    }
+
+    @Generatable(implementations = {String.class})
+    public interface InvalidShape {
+    }
+
     @ParameterizedTest(name = "{0} -> {1}")
     @MethodSource("integralTypes")
     void shouldGenerateIntegralNumbers(
             Class<?> requestedType,
             Class<?> expectedType
     ) throws Exception {
-        Generator generator = new Generator(new Random(42));
         Set<Object> generatedValues = new HashSet<>();
 
         for (int i = 0; i < 30; i++) {
@@ -131,7 +146,6 @@ class GeneratorTest {
             Class<?> requestedType,
             Class<?> expectedType
     ) throws Exception {
-        Generator generator = new Generator(new Random(42));
         Set<Object> generatedValues = new HashSet<>();
 
         for (int i = 0; i < 30; i++) {
@@ -162,7 +176,6 @@ class GeneratorTest {
     @ParameterizedTest
     @ValueSource(classes = {boolean.class, Boolean.class})
     void shouldGenerateBoolean(Class<?> clazz) throws Exception {
-        Generator generator = new Generator(new Random(42));
         Set<Boolean> generatedValues = new HashSet<>();
 
         for (int i = 0; i < 30; i++) {
@@ -178,7 +191,6 @@ class GeneratorTest {
     @ParameterizedTest
     @ValueSource(classes = {char.class, Character.class})
     void shouldGenerateCharacter(Class<?> clazz) throws Exception {
-        Generator generator = new Generator(new Random(42));
         Set<Character> generatedValues = new HashSet<>();
 
         for (int i = 0; i < 30; i++) {
@@ -196,20 +208,20 @@ class GeneratorTest {
 
     @Test
     void shouldGenerateString() throws Exception {
-        Generator generator = new Generator(new Random(42));
-
         for (int i = 0; i < 30; i++) {
             String result = generator.generateValueOfType(String.class);
 
             assertNotNull(result);
-            assertTrue(!result.isEmpty() && result.length() <= 15, "String length must be between 1 and 15");
+            assertTrue(
+                    !result.isEmpty() && result.length() <= 15,
+                    "String length must be between 1 and 15"
+            );
             assertTrue(result.matches("[a-z]+"), "String must contain only lowercase Latin letters");
         }
     }
 
     @Test
     void shouldGenerateDifferentStrings() throws Exception {
-        Generator generator = new Generator(new Random(42));
         Set<String> generatedValues = new HashSet<>();
 
         for (int i = 0; i < 30; i++) {
@@ -221,8 +233,6 @@ class GeneratorTest {
 
     @Test
     void shouldGenerateEnum() throws Exception {
-        Generator generator = new Generator(new Random(42));
-
         for (int i = 0; i < 30; i++) {
             Color result = generator.generateValueOfType(Color.class);
 
@@ -233,7 +243,7 @@ class GeneratorTest {
 
     @Test
     void shouldGenerateDifferentEnums() throws Exception {
-        Generator generator = new Generator(new Random(42));
+
         Set<Color> generatedValues = new HashSet<>();
 
         for (int i = 0; i < 30; i++) {
@@ -245,21 +255,20 @@ class GeneratorTest {
 
     @Test
     void shouldRejectEmptyEnum() {
-        Generator generator = new Generator(new Random(42));
-
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
                 () -> generator.generateValueOfType(EmptyEnum.class)
         );
 
-        assertTrue(exception.getMessage().contains(EmptyEnum.class.getName()), "Exception message should contain the enum class name");
+        assertTrue(
+                exception.getMessage().contains(EmptyEnum.class.getName()),
+                "Exception message should contain the enum class name"
+        );
     }
 
 
     @Test
     void shouldGenerateIntArray() throws Exception {
-        Generator generator = new Generator(new Random(42));
-
         int[] result = generator.generateValueOfType(int[].class);
 
         assertNotNull(result);
@@ -272,8 +281,6 @@ class GeneratorTest {
 
     @Test
     void shouldGenerateStringArray() throws Exception {
-        Generator generator = new Generator(new Random(42));
-
         String[] result = generator.generateValueOfType(String[].class);
 
         assertNotNull(result);
@@ -288,8 +295,6 @@ class GeneratorTest {
 
     @Test
     void shouldGenerateBooleanArray() throws Exception {
-        Generator generator = new Generator(new Random(42));
-
         Boolean[] result = generator.generateValueOfType(Boolean[].class);
 
         assertNotNull(result);
@@ -302,8 +307,6 @@ class GeneratorTest {
 
     @Test
     void shouldGenerateCharArray() throws Exception {
-        Generator generator = new Generator(new Random(42));
-
         char[] result = generator.generateValueOfType(char[].class);
 
         assertNotNull(result);
@@ -316,8 +319,6 @@ class GeneratorTest {
 
     @Test
     void shouldGenerateEnumArray() throws Exception {
-        Generator generator = new Generator(new Random(42));
-
         Color[] result = generator.generateValueOfType(Color[].class);
 
         assertNotNull(result);
@@ -338,8 +339,6 @@ class GeneratorTest {
             Product.class
     })
     void shouldGenerateUserDefinedClass(Class<?> clazz) throws Exception {
-        Generator generator = new Generator(new Random(42));
-
         Object result = generator.generateValueOfType(clazz);
 
         assertNotNull(result);
@@ -349,8 +348,6 @@ class GeneratorTest {
 
     @Test
     void shouldUseOnlyPublicConstructors() throws Exception {
-        Generator generator = new Generator(new Random(42));
-
         for (int i = 0; i < 30; i++) {
             MixedConstructors result =
                     generator.generateValueOfType(MixedConstructors.class);
@@ -361,8 +358,6 @@ class GeneratorTest {
 
     @Test
     void shouldRejectClassWithoutPublicConstructors() {
-        Generator generator = new Generator(new Random(42));
-
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
                 () -> generator.generateValueOfType(PrivateConstructorOnly.class)
@@ -378,8 +373,6 @@ class GeneratorTest {
 
     @Test
     void shouldGenerateList() throws Exception {
-        Generator generator = new Generator(new Random(42));
-
         List<?> result = generator.generateValueOfType(List.class);
 
         assertNotNull(result);
@@ -389,8 +382,6 @@ class GeneratorTest {
 
     @Test
     void shouldGenerateMap() throws Exception {
-        Generator generator = new Generator(new Random(42));
-
         Map<?, ?> result = generator.generateValueOfType(Map.class);
 
         assertNotNull(result);
@@ -401,8 +392,6 @@ class GeneratorTest {
 
     @Test
     void shouldGenerateCartWithProducts() throws Exception {
-        Generator generator = new Generator(new Random(42));
-
         Cart cart = generator.generateValueOfType(Cart.class);
 
         assertNotNull(cart);
@@ -416,10 +405,7 @@ class GeneratorTest {
 
     @Test
     void shouldGenerateParameterizedMap() throws Exception {
-        Generator generator = new Generator(new Random(42));
-
-        ProductMapHolder holder =
-                generator.generateValueOfType(ProductMapHolder.class);
+        ProductMapHolder holder = generator.generateValueOfType(ProductMapHolder.class);
 
         Map<?, ?> products = holder.getProducts();
 
@@ -435,10 +421,7 @@ class GeneratorTest {
 
     @Test
     void shouldGenerateMapWithLimitedUniqueKeys() throws Exception {
-        Generator generator = new Generator(new Random(42));
-
-        BooleanMapHolder holder =
-                generator.generateValueOfType(BooleanMapHolder.class);
+        BooleanMapHolder holder = generator.generateValueOfType(BooleanMapHolder.class);
 
         Map<?, ?> values = holder.getValues();
 
@@ -456,8 +439,6 @@ class GeneratorTest {
 
     @Test
     void shouldGenerateBinaryTreeNode() throws Exception {
-        Generator generator = new Generator(new Random(42));
-
         BinaryTreeNode root = generator.generateValueOfType(BinaryTreeNode.class);
 
         assertTreeStructure(root, 3);
@@ -479,10 +460,7 @@ class GeneratorTest {
 
     @Test
     void shouldHandleMutualRecursion() throws Exception {
-        Generator generator = new Generator(new Random(42));
-
-        RecursiveA root =
-                generator.generateValueOfType(RecursiveA.class);
+        RecursiveA root = generator.generateValueOfType(RecursiveA.class);
 
         assertNotNull(root);
         assertNotNull(root.next);
@@ -494,4 +472,26 @@ class GeneratorTest {
         assertNull(root.next.next.next.next.next.next);
     }
 
+    @Test
+    void shouldGenerateInterfaceImplementation() throws Exception {
+        Shape shape = generator.generateValueOfType(Shape.class);
+
+        assertNotNull(shape);
+        assertTrue(shape instanceof Rectangle || shape instanceof Triangle);
+    }
+
+    @Test
+    void shouldGenerateAbstractClassImplementation() throws Exception {
+        Animal animal = generator.generateValueOfType(Animal.class);
+
+        assertInstanceOf(Dog.class, animal);
+    }
+
+    @Test
+    void shouldRejectInvalidImplementation() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> generator.generateValueOfType(InvalidShape.class)
+        );
+    }
 }

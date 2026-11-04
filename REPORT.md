@@ -130,4 +130,4 @@ public interface Shape {
 
 JUnit-тесты покрывают поддерживаемые категории типов, создание пользовательских объектов, параметризованные коллекции, рекурсивные структуры, полиморфную генерацию через `@Generatable` и ошибки создания объектов.
 
-В репозитории настроен workflow `.github/workflows/java-tests.yml`. **GitHub Actions** запускает тесты при событиях `push` и `pull_request`.
+В репозитории настроен workflow `.github/workflows/tests.yml`. **GitHub Actions** запускает тесты при событиях `push` и `pull_request`.

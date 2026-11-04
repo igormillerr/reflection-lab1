@@ -185,31 +185,44 @@ public class Generator {
         path.addLast(clazz);
         try {
             Constructor<?>[] constructors = clazz.getConstructors();
-
             if (constructors.length == 0) {
                 throw new IllegalArgumentException(
                         "Cannot generate value: " + clazz.getName() + " has no public constructors"
                 );
             }
 
-            int randomConstructorIndex = random.nextInt(constructors.length);
-            Constructor<?> randomConstructor = constructors[randomConstructorIndex];
+            int startIndex = random.nextInt(constructors.length);
+            IllegalStateException failure = new IllegalStateException(
+                    "Cannot generate value: " + clazz.getName() + " - all public constructors failed"
+            );
 
-            Type[] parameterTypes = randomConstructor.getGenericParameterTypes();
-            Object[] arguments = new Object[parameterTypes.length];
+            for (int i = 0; i < constructors.length; i++) {
+                int index = (startIndex + i) % constructors.length;
+                Constructor<?> constructor = constructors[index];
 
-            for (int i = 0; i < parameterTypes.length; i++) {
-                arguments[i] = generateValueOfType(parameterTypes[i], path);
+                try {
+                    Type[] parameterTypes = constructor.getGenericParameterTypes();
+                    Object[] arguments = new Object[parameterTypes.length];
+
+                    for (int j = 0; j < parameterTypes.length; j++) {
+                        arguments[j] = generateValueOfType(parameterTypes[j], path);
+                    }
+
+                    try {
+                        return clazz.cast(constructor.newInstance(arguments));
+                    } catch (InvocationTargetException e) {
+                        throw new IllegalStateException(
+                                "Constructor failed: " + constructor,
+                                e.getCause()
+                        );
+                    }
+
+                } catch (IllegalArgumentException | IllegalStateException
+                         | InstantiationException | IllegalAccessException e) {
+                    failure.addSuppressed(e);
+                }
             }
-
-            try {
-                return clazz.cast(randomConstructor.newInstance(arguments));
-            } catch (InvocationTargetException e) {
-                throw new IllegalStateException(
-                        "Failed to generate instance of " + clazz.getName() + ": constructor threw an exception",
-                        e.getCause()
-                );
-            }
+            throw failure;
         } finally {
             path.removeLast();
         }

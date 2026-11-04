@@ -110,6 +110,14 @@ class GeneratorTest {
         }
     }
 
+    public static class MixedViability {
+        public MixedViability() {
+        }
+
+        public MixedViability(Runnable task) {
+        }
+    }
+
     @ParameterizedTest(name = "{0} -> {1}")
     @MethodSource("integralTypes")
     void shouldGenerateIntegralNumbers(
@@ -515,5 +523,16 @@ class GeneratorTest {
         Throwable cause = exception.getCause();
         assertInstanceOf(IllegalArgumentException.class, cause);
         assertEquals("Invalid constructor arguments", cause.getMessage());
+    }
+
+    @Test
+    void shouldFallbackToAnotherConstructor() throws Exception {
+        Generator generator = new Generator(new Random(42));
+
+        for (int i = 0; i < 100; i++) {
+            MixedViability result = generator.generateValueOfType(MixedViability.class);
+
+            assertNotNull(result);
+        }
     }
 }

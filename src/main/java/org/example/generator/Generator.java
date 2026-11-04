@@ -14,6 +14,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Random;
 
 @SuppressWarnings("unchecked")
@@ -24,7 +25,7 @@ public class Generator {
     private final Random random;
 
     public Generator(Random random) {
-        this.random = random;
+        this.random = Objects.requireNonNull(random, "random must not be null");
     }
 
     public Generator() {
@@ -33,6 +34,7 @@ public class Generator {
 
     public <T> T generateValueOfType(Class<T> clazz)
             throws InvocationTargetException, InstantiationException, IllegalAccessException {
+        Objects.requireNonNull(clazz, "clazz must not be null");
         return generateValueOfType(clazz, new ArrayDeque<>());
     }
 
@@ -143,7 +145,7 @@ public class Generator {
             Map<String, Integer> result = new HashMap<>();
             int length = random.nextInt(1, 6);
 
-            while (result.size() < length) {
+            for (int i = 0; i < length; i++) {
                 String key = generateValueOfType(String.class, path);
                 Integer value = generateValueOfType(Integer.class, path);
                 result.put(key, value);
@@ -199,7 +201,15 @@ public class Generator {
             for (int i = 0; i < parameterTypes.length; i++) {
                 arguments[i] = generateValueOfType(parameterTypes[i], path);
             }
-            return clazz.cast(randomConstructor.newInstance(arguments));
+
+            try {
+                return clazz.cast(randomConstructor.newInstance(arguments));
+            } catch (InvocationTargetException e) {
+                throw new IllegalStateException(
+                        "Failed to generate instance of " + clazz.getName() + ": constructor threw an exception",
+                        e.getCause()
+                );
+            }
         } finally {
             path.removeLast();
         }

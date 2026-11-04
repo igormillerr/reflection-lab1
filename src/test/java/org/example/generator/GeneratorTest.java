@@ -104,6 +104,12 @@ class GeneratorTest {
     public interface InvalidShape {
     }
 
+    public static class FailingConstructor {
+        public FailingConstructor() {
+            throw new IllegalArgumentException("Invalid constructor arguments");
+        }
+    }
+
     @ParameterizedTest(name = "{0} -> {1}")
     @MethodSource("integralTypes")
     void shouldGenerateIntegralNumbers(
@@ -493,5 +499,21 @@ class GeneratorTest {
                 IllegalArgumentException.class,
                 () -> generator.generateValueOfType(InvalidShape.class)
         );
+    }
+
+    @Test
+    void shouldPreserveConstructorExceptionCause() {
+        Generator generator = new Generator(new Random(42));
+
+        IllegalStateException exception = assertThrows(
+                IllegalStateException.class,
+                () -> generator.generateValueOfType(FailingConstructor.class)
+        );
+
+        assertTrue(exception.getMessage().contains(FailingConstructor.class.getName()));
+
+        Throwable cause = exception.getCause();
+        assertInstanceOf(IllegalArgumentException.class, cause);
+        assertEquals("Invalid constructor arguments", cause.getMessage());
     }
 }
